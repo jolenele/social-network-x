@@ -1,18 +1,9 @@
 import Link from "next/link";
-import "@fontsource/lexend";
 
 export default function TryitNow() {
   return (
     <div
-      className="min-h-screen flex flex-col items-center pt-15 text-black bg-[#8df6ddff]"
-      style={{ fontFamily: "'Lexend', sans-serif", 
-        backgroundColor: "#8df6ddff", // base color stays
-        backgroundImage:
-          "radial-gradient(#fef5fe 2px, transparent 2px), radial-gradient(#fef5fe 2px, transparent 2px)", // white dots
-        backgroundSize: "80px 80px",
-        backgroundPosition: "0 0, 40px 40px",
-        backgroundBlendMode: "overlay", // makes sure base color shows through
-      }}
+      className="min-h-screen flex flex-col items-center pt-15 text-black bg-[#8df6ddff] font-['Lexend',sans-serif] bg-[radial-gradient(#fef5fe_2px,transparent_2px),radial-gradient(#fef5fe_2px,transparent_2px)] bg-size-[80px_80px] bg-position-[0_0,40px_40px] bg-blend-overlay"
     >
       <p className="text-[1.5rem]">Start Your Style Adventure</p>
       <p className="text-lg mt-5 text-black text-center">
