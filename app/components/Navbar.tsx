@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import AuthButton from "./AuthButton";
 import AuthAwareGallery from "./AuthAwareGallery";
+import AuthAwareEditor from "./AuthAwareEditor";
 
 export default function Navbar() {
   return (
@@ -26,9 +27,10 @@ export default function Navbar() {
         </div>
 
         {/* Right side nav */}
-        <div className="flex items-center justify-end">
-          {/* Gallery only visible when authenticated */}
+        <div className="flex">
+          {/* Gallery and Editor only visible when authenticated */}
           <AuthAwareGallery />
+          <AuthAwareEditor />
 
           {/* Auth button shows either Login or Logout depending on session */}
           <AuthButton />

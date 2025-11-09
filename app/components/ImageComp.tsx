@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, CSSProperties } from "react";
 
 type Props = {

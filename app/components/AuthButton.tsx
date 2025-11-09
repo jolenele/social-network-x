@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 type User = { name?: string | null; email?: string | null; picture?: string | null };
@@ -72,7 +72,7 @@ export default function AuthButton() {
             alt={user.name ?? 'avatar'}
             width={36}
             height={36}
-            className="rounded-full cursor-pointer transition-transform transform hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400"
+            className="ml-3 rounded-full cursor-pointer transition-transform transform hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400"
             onClick={() => setMenuOpen((s) => !s)}
             tabIndex={0}
             onKeyDown={(e) => {

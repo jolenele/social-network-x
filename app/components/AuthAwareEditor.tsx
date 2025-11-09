@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-export default function AuthAwareGallery() {
+export default function AuthAwareEditor() {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
 
@@ -31,10 +31,10 @@ export default function AuthAwareGallery() {
 
   return (
     <Link
-      href="/gallery"
+      href="/editor"
       className="inline-flex items-center px-3 py-2 text-black text-2xl font-medium hover:underline font-['Comfortaa',sans-serif]"
     >
-      Gallery
+      Editor
     </Link>
   );
 }
