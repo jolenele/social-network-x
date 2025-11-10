@@ -3,6 +3,8 @@ import Image from "next/image";
 import AuthButton from "./AuthButton";
 import AuthAwareGallery from "./AuthAwareGallery";
 import AuthAwareEditor from "./AuthAwareEditor";
+import "@fontsource/comfortaa";
+
 
 export default function Navbar() {
   return (

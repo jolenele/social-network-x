@@ -33,8 +33,8 @@ export default function GalleryPage() {
         backgroundBlendMode: "overlay", // makes sure base color shows through
       }}
     >
-      <p className="text-[1.5rem]">Your Style Adventure Awaits</p>
-      <p className="text-lg mt-5 text-black text-center">
+      <p className="text-[30px]">Your Style Adventure Awaits</p>
+      <p className="text-[18px] mt-5 text-black text-center">
         Select a Photo and Get Started.
       </p>
 
