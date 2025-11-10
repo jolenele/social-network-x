@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import GooglePhotosPicker from "../components/GooglePhotosPickerNew";
 
 export default function EditorPage() {
   const [color, setColor] = useState("");
@@ -9,6 +10,10 @@ export default function EditorPage() {
   const [showHairstyles, setShowHairstyles] = useState(false);
 
   const [isApplied, setIsApplied] = useState(false);
+  
+  // Google Photos picker state
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const hairColors = [
     "Blonde",
@@ -44,6 +49,11 @@ export default function EditorPage() {
     "Man Bun",
     "Beard",
   ];
+
+  function handlePhotoSelect(photoUrl: string, photoData: any) {
+    setSelectedPhoto(photoUrl);
+    console.log('Selected photo:', photoData);
+  }
 
   return (
     <div
@@ -122,9 +132,26 @@ export default function EditorPage() {
           {/* Left Side */}
           <div className="w-1/2 flex flex-col items-center justify-start p-6 mt-4">
             {/* Image placeholder */}
-            <div className="w-[310px] h-[310px] bg-gray-300 rounded-md mb-4 flex items-center justify-center">
-              <span className="text-gray-600 text-sm">Image</span>
+            <div className="w-[310px] h-[310px] bg-gray-300 rounded-md mb-4 flex items-center justify-center overflow-hidden">
+              {selectedPhoto ? (
+                <img
+                  src={selectedPhoto}
+                  alt="Selected from Google Photos"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-gray-600 text-sm">Image</span>
+              )}
             </div>
+
+            {/* Import from Google button (immediately below the Image window) */}
+            <button
+              onClick={() => setShowPhotoPicker(true)}
+              className="mt-2 px-4 py-2 bg-[#b7fff9ff] text-black border border-black rounded-sm w-[285px] text-lg"
+            >
+              Import Photos
+            </button>
+
             {/* Description */}
             <p className="w-[285px] text-sm text-black text-center">
               This represents your current look. Customize the options on the right to see changes.
@@ -216,6 +243,12 @@ export default function EditorPage() {
         </div>
       </div>
 
+      {/* Google Photos Picker Modal */}
+      <GooglePhotosPicker
+        isOpen={showPhotoPicker}
+        onClose={() => setShowPhotoPicker(false)}
+        onSelectPhoto={handlePhotoSelect}
+      />
     </div>
   );
 }

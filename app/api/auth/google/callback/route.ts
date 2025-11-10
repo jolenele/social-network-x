@@ -36,18 +36,44 @@ export async function GET(request: Request) {
     }
 
     const tokenJson = await tokenRes.json();
+    console.log('\n=== TOKEN EXCHANGE RESPONSE ===');
+    console.log('Has access_token:', !!tokenJson.access_token);
+    console.log('Has refresh_token:', !!tokenJson.refresh_token);
+    console.log('Has id_token:', !!tokenJson.id_token);
+    console.log('Scope from response:', tokenJson.scope);
+    console.log('================================\n');
+    
     const idToken = tokenJson.id_token; // JWT
+    const accessToken = tokenJson.access_token;
+    const refreshToken = tokenJson.refresh_token;
 
-    // Set session cookie containing the id_token (simple approach). Cookie expires in 1 day.
+    // Set session cookies. Cookies expire in 1 day.
     const maxAge = 60 * 60 * 24; // 1 day in seconds
     const isProd = process.env.NODE_ENV === 'production';
-    const cookieValue = encodeURIComponent(idToken ?? '');
+    const secureSuffix = isProd ? ' Secure;' : '';
 
     const res = NextResponse.redirect(new URL('/', request.url));
-    const setCookie = `session=${cookieValue}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax;${
-      isProd ? ' Secure;' : ''
-    }`;
-    res.headers.append('Set-Cookie', setCookie);
+    
+    // Store id_token for user info
+    res.headers.append(
+      'Set-Cookie',
+      `session=${encodeURIComponent(idToken ?? '')}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax;${secureSuffix}`
+    );
+    
+    // Store access_token for API calls
+    res.headers.append(
+      'Set-Cookie',
+      `access_token=${encodeURIComponent(accessToken ?? '')}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax;${secureSuffix}`
+    );
+    
+    // Store refresh_token if provided
+    if (refreshToken) {
+      res.headers.append(
+        'Set-Cookie',
+        `refresh_token=${encodeURIComponent(refreshToken)}; HttpOnly; Path=/; Max-Age=${maxAge * 30}; SameSite=Lax;${secureSuffix}`
+      );
+    }
+    
     return res;
   } catch (e) {
     console.error('Callback error', e);

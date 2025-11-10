@@ -38,12 +38,18 @@ export async function GET(request: Request) {
 
     const info = await verifyRes.json();
     // info contains fields like email, name, picture, exp, aud
+    
+    const isWorkspaceAccount = info.hd !== undefined; // hd = hosted domain
+    const domain = info.hd || null;
+    
     return NextResponse.json({
       authenticated: true,
       user: {
         name: info.name ?? null,
         email: info.email ?? null,
         picture: info.picture ?? null,
+        isWorkspaceAccount,
+        domain,
       },
     });
   } catch (e) {
