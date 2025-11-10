@@ -32,26 +32,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
-    // List selected media items from the session
-    const mediaItemsUrl = `https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems`;
+    // According to Google Photos Picker API docs, use mediaItems.list endpoint
+    // GET https://photospicker.googleapis.com/v1/mediaItems?sessionId={sessionId}
+    console.log('Fetching media items for session:', sessionId);
+    const mediaItemsUrl = `https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`;
     
     const mediaRes = await fetch(mediaItemsUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${decodedToken}`,
+        'Content-Type': 'application/json',
       },
     });
 
     if (!mediaRes.ok) {
       const errorText = await mediaRes.text();
-      console.error('List media items error:', mediaRes.status, errorText);
+      console.error('Media items fetch error:', mediaRes.status, errorText);
       return NextResponse.json(
-        { error: 'Failed to list media items', details: errorText },
+        { error: 'Failed to fetch media items', details: errorText },
         { status: mediaRes.status }
       );
     }
 
     const mediaData = await mediaRes.json();
+    console.log('Media items response:', JSON.stringify(mediaData, null, 2));
     
     return NextResponse.json({
       mediaItems: mediaData.mediaItems || [],

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GooglePhotosPicker from "../components/GooglePhotosPickerNew";
 
 export default function EditorPage() {
@@ -14,6 +14,16 @@ export default function EditorPage() {
   // Google Photos picker state
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
+  // Monitor selectedPhoto state changes
+  useEffect(() => {
+    console.log('🔔 [STATE] selectedPhoto changed to:', selectedPhoto);
+  }, [selectedPhoto]);
+
+  // Monitor showPhotoPicker state changes
+  useEffect(() => {
+    console.log('🔔 [STATE] showPhotoPicker changed to:', showPhotoPicker);
+  }, [showPhotoPicker]);
 
   const hairColors = [
     "Blonde",
@@ -51,8 +61,15 @@ export default function EditorPage() {
   ];
 
   function handlePhotoSelect(photoUrl: string, photoData: any) {
+    console.log('🎯 [PAGE] handlePhotoSelect CALLED!');
+    console.log('🎯 [PAGE] Photo URL received:', photoUrl);
+    console.log('🎯 [PAGE] Photo data received:', photoData);
+    console.log('🎯 [PAGE] Current selectedPhoto state:', selectedPhoto);
+    console.log('🎯 [PAGE] Setting selectedPhoto to:', photoUrl);
     setSelectedPhoto(photoUrl);
-    console.log('Selected photo:', photoData);
+    console.log('🎯 [PAGE] Closing photo picker...');
+    setShowPhotoPicker(false);
+    console.log('✅ [PAGE] handlePhotoSelect COMPLETE');
   }
 
   return (
@@ -134,13 +151,26 @@ export default function EditorPage() {
             {/* Image placeholder */}
             <div className="w-[310px] h-[310px] bg-gray-300 rounded-md mb-4 flex items-center justify-center overflow-hidden">
               {selectedPhoto ? (
-                <img
-                  src={selectedPhoto}
-                  alt="Selected from Google Photos"
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  {console.log('🖼️ [RENDER] Rendering image with URL:', selectedPhoto)}
+                  <img
+                    src={selectedPhoto}
+                    alt="Selected from Google Photos"
+                    className="w-full h-full object-cover"
+                    crossOrigin="anonymous"
+                    onLoad={() => console.log('✅ [IMAGE] Image loaded successfully:', selectedPhoto)}
+                    onError={(e) => {
+                      console.error('❌ [IMAGE] Image failed to load');
+                      console.error('❌ [IMAGE] Image URL was:', selectedPhoto);
+                      console.error('❌ [IMAGE] Error event:', e);
+                    }}
+                  />
+                </>
               ) : (
-                <span className="text-gray-600 text-sm">Image</span>
+                <>
+                  {console.log('🖼️ [RENDER] No photo selected, showing placeholder')}
+                  <span className="text-gray-600 text-sm">Image</span>
+                </>
               )}
             </div>
 

@@ -17,113 +17,184 @@ export default function GooglePhotosPicker({
   const [pickerWindow, setPickerWindow] = useState<Window | null>(null);
 
   async function openPicker() {
+    console.log('🚀 [PICKER] Starting openPicker()');
     setLoading(true);
     setError(null);
 
     try {
       // Step 1: Create a picker session
+      console.log('📝 [PICKER] Creating picker session...');
       const sessionRes = await fetch('/api/photos/create-session', {
         method: 'POST',
       });
 
+      console.log('📝 [PICKER] Session response status:', sessionRes.status);
+
       if (!sessionRes.ok) {
         const errorData = await sessionRes.json();
+        console.error('❌ [PICKER] Session creation failed:', errorData);
         throw new Error(errorData.error || 'Failed to create picker session');
       }
 
       const { sessionId, pickerUri } = await sessionRes.json();
+      console.log('✅ [PICKER] Session created - ID:', sessionId);
 
       // Step 2: Open the picker URI in a popup window
+      console.log('🪟 [PICKER] Opening popup window...');
       const width = 600;
       const height = 800;
       const left = (window.screen.width - width) / 2;
       const top = (window.screen.height - height) / 2;
       
+      // Don't use /autoclose - we'll close it ourselves
       const popup = window.open(
-        `${pickerUri}/autoclose`,
+        pickerUri,
         'Google Photos Picker',
         `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
       );
 
       if (!popup) {
+        console.error('❌ [PICKER] Popup was blocked');
         throw new Error('Popup blocked. Please allow popups for this site.');
       }
 
+      console.log('✅ [PICKER] Popup opened successfully');
       setPickerWindow(popup);
       setLoading(false);
 
       // Step 3: Poll the session to check when user finishes selection
+      console.log('⏱️ [PICKER] Starting to poll session...');
       pollSession(sessionId, popup);
     } catch (err) {
-      console.error('Error opening picker:', err);
+      console.error('❌ [PICKER] Error opening picker:', err);
       setError(err instanceof Error ? err.message : 'Failed to open picker');
       setLoading(false);
     }
   }
 
   async function pollSession(sessionId: string, popup: Window) {
+    console.log('🔄 [POLLING] Starting pollSession with ID:', sessionId);
     const pollInterval = 2000; // 2 seconds
     const maxAttempts = 150; // 5 minutes total
     let attempts = 0;
 
     const poll = async () => {
-      // Check if popup was closed
-      if (popup.closed) {
-        onClose();
-        return;
-      }
-
       attempts++;
+      console.log(`🔄 [POLLING] Attempt ${attempts}/${maxAttempts}`);
+
       if (attempts > maxAttempts) {
+        console.error('⏰ [POLLING] Timeout - max attempts reached');
         setError('Selection timed out');
-        popup.close();
+        if (!popup.closed) popup.close();
         onClose();
         return;
       }
 
       try {
+        console.log(`📡 [POLLING] Fetching session status...`);
         const pollRes = await fetch(`/api/photos/poll-session?sessionId=${sessionId}`);
         
+        console.log('📡 [POLLING] Poll response status:', pollRes.status);
+        
         if (!pollRes.ok) {
+          console.error('❌ [POLLING] Poll request failed');
           throw new Error('Failed to poll session');
         }
 
-        const { mediaItemsSet, pollingConfig } = await pollRes.json();
+        const sessionData = await pollRes.json();
+        const { mediaItemsSet, pollingConfig, mediaItems } = sessionData;
+        console.log('📡 [POLLING] mediaItemsSet:', mediaItemsSet);
+        console.log('📡 [POLLING] mediaItems:', mediaItems);
 
         if (mediaItemsSet) {
-          // Step 4: User finished selecting - get the selected media items
-          const mediaRes = await fetch(`/api/photos/list-selected?sessionId=${sessionId}`);
+          console.log('✅ [POLLING] User finished selecting!');
           
-          if (!mediaRes.ok) {
-            throw new Error('Failed to get selected photos');
-          }
-
-          const { mediaItems } = await mediaRes.json();
-
           if (mediaItems && mediaItems.length > 0) {
+            console.log('📸 [MEDIA] Processing', mediaItems.length, 'media items');
             const firstItem = mediaItems[0];
-            // Get high-quality version of the photo
-            const photoUrl = `${firstItem.mediaFile.baseUrl}=w2048-h2048`;
-            onSelectPhoto(photoUrl, firstItem);
+            console.log('📸 [MEDIA] First item:', JSON.stringify(firstItem, null, 2));
+            
+            // PickedMediaItem has structure: { mediaFile: { baseUrl, mimeType } }
+            const baseUrl = firstItem.mediaFile?.baseUrl || firstItem.baseUrl;
+            console.log('📸 [MEDIA] Extracted baseUrl:', baseUrl);
+            
+            if (baseUrl) {
+              // Photos Picker API requires authorization header for baseUrl
+              // So we need to proxy through our backend
+              const googlePhotoUrl = `${baseUrl}=w2048-h2048`;
+              const photoUrl = `/api/photos/proxy-image?url=${encodeURIComponent(googlePhotoUrl)}`;
+              console.log('📸 [MEDIA] Google Photos URL:', googlePhotoUrl);
+              console.log('📸 [MEDIA] Proxied URL:', photoUrl);
+              console.log('✅ [MEDIA] Calling onSelectPhoto callback...');
+              onSelectPhoto(photoUrl, firstItem);
+              console.log('✅ [MEDIA] Callback completed');
+            } else {
+              console.error('❌ [MEDIA] No baseUrl found in media item');
+            }
+          } else {
+            console.warn('⚠️ [MEDIA] No media items in poll response, fetching separately...');
+            
+            // Fallback: fetch media items from separate endpoint
+            try {
+              const mediaRes = await fetch(`/api/photos/list-selected?sessionId=${sessionId}`);
+              console.log('📸 [MEDIA] Separate fetch status:', mediaRes.status);
+              
+              if (mediaRes.ok) {
+                const { mediaItems: fetchedItems } = await mediaRes.json();
+                console.log('📸 [MEDIA] Fetched items:', fetchedItems);
+                
+                if (fetchedItems && fetchedItems.length > 0) {
+                  const firstItem = fetchedItems[0];
+                  console.log('📸 [MEDIA] First item:', JSON.stringify(firstItem, null, 2));
+                  
+                  // PickedMediaItem has structure: { mediaFile: { baseUrl, mimeType } }
+                  const baseUrl = firstItem.mediaFile?.baseUrl || firstItem.baseUrl;
+                  console.log('📸 [MEDIA] Extracted baseUrl:', baseUrl);
+                  
+                  if (baseUrl) {
+                    // Photos Picker API requires authorization header for baseUrl
+                    // So we need to proxy through our backend
+                    const googlePhotoUrl = `${baseUrl}=w2048-h2048`;
+                    const photoUrl = `/api/photos/proxy-image?url=${encodeURIComponent(googlePhotoUrl)}`;
+                    console.log('📸 [MEDIA] Google Photos URL:', googlePhotoUrl);
+                    console.log('📸 [MEDIA] Proxied URL:', photoUrl);
+                    console.log('✅ [MEDIA] Calling onSelectPhoto callback...');
+                    onSelectPhoto(photoUrl, firstItem);
+                    console.log('✅ [MEDIA] Callback completed');
+                  }
+                }
+              } else {
+                console.error('❌ [MEDIA] Failed to fetch media items');
+              }
+            } catch (fetchErr) {
+              console.error('❌ [MEDIA] Error fetching media items:', fetchErr);
+            }
           }
 
-          popup.close();
+          console.log('🪟 [POLLING] Closing popup...');
+          if (!popup.closed) popup.close();
           onClose();
+          return;
         } else {
           // Continue polling
-          const nextPollInterval = pollingConfig?.pollInterval || pollInterval;
+          const nextPollInterval = pollingConfig?.pollInterval 
+            ? parseInt(pollingConfig.pollInterval) * 1000 
+            : pollInterval;
+          console.log(`⏱️ [POLLING] Not ready yet, polling again in ${nextPollInterval}ms...`);
           setTimeout(poll, nextPollInterval);
         }
       } catch (err) {
-        console.error('Polling error:', err);
+        console.error('❌ [POLLING] Polling error:', err);
         setError(err instanceof Error ? err.message : 'Error during photo selection');
-        popup.close();
+        if (!popup.closed) popup.close();
         onClose();
       }
     };
 
     // Start polling
-    setTimeout(poll, pollInterval);
+    const initialDelay = 3000; // 3 seconds initial delay
+    console.log(`⏱️ [POLLING] Scheduling first poll in ${initialDelay}ms...`);
+    setTimeout(poll, initialDelay);
   }
 
   // Open picker when component becomes visible

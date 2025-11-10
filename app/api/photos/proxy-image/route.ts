@@ -26,40 +26,44 @@ export async function GET(request: Request) {
 
     const decodedToken = decodeURIComponent(accessToken);
     const url = new URL(request.url);
-    const sessionId = url.searchParams.get('sessionId');
+    const imageUrl = url.searchParams.get('url');
 
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+    if (!imageUrl) {
+      return NextResponse.json({ error: 'Image URL required' }, { status: 400 });
     }
 
-    // Poll the session to check if user has finished selecting
-    const sessionRes = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}`, {
+    console.log('Proxying image:', imageUrl);
+
+    // Fetch the image with authorization header
+    const imageRes = await fetch(imageUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${decodedToken}`,
       },
     });
 
-    if (!sessionRes.ok) {
-      const errorText = await sessionRes.text();
-      console.error('Session poll error:', sessionRes.status, errorText);
+    if (!imageRes.ok) {
+      console.error('Image fetch error:', imageRes.status, imageRes.statusText);
       return NextResponse.json(
-        { error: 'Failed to poll session', details: errorText },
-        { status: sessionRes.status }
+        { error: 'Failed to fetch image' },
+        { status: imageRes.status }
       );
     }
 
-    const sessionData = await sessionRes.json();
-    
-    console.log('Full session data from Google API:', JSON.stringify(sessionData, null, 2));
-    
-    return NextResponse.json({
-      mediaItemsSet: sessionData.mediaItemsSet || false,
-      pollingConfig: sessionData.pollingConfig,
-      mediaItems: sessionData.mediaItems || [],
+    // Get the image as a buffer
+    const imageBuffer = await imageRes.arrayBuffer();
+    const contentType = imageRes.headers.get('content-type') || 'image/jpeg';
+
+    // Return the image with proper headers
+    return new NextResponse(imageBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      },
     });
   } catch (e) {
-    console.error('Poll session error:', e);
+    console.error('Proxy image error:', e);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
