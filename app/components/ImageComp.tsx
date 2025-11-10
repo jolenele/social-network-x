@@ -75,15 +75,15 @@ export default function ImageComp({
   const imgStyle: CSSProperties = {
     width: "100%",
     height: "100%",
-    objectFit: fit,    
+    objectFit: fit,
   };
 
   return (
     <div className={className} style={containerStyle}>
       <ImgComparison 
         style={{ 
-          width: "100%", 
-          height: "100%",  
+          width: "100%",
+          height: "100%",
           "--divider-color": "white",
           "--divider-width": "2px",
           filter: "drop-shadow(0 0 4px rgba(0,0,0,0.4))",

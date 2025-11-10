@@ -1,7 +1,5 @@
 "use client";
 import { useState } from "react";
-import "@fontsource/lexend";
-import "@fontsource/comfortaa";
 
 export default function EditorPage() {
   const [color, setColor] = useState("");
@@ -49,20 +47,14 @@ export default function EditorPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-row text-black bg-[#8df6ddff]"
-      style={{ fontFamily: "'Lexend', sans-serif", 
-        backgroundColor: "#8df6ddff", // base color stays
-        backgroundImage:
-          "radial-gradient(#fef5fe 2px, transparent 2px), radial-gradient(#fef5fe 2px, transparent 2px)", // white dots
-        backgroundSize: "80px 80px",
-        backgroundPosition: "0 0, 40px 40px",
-        backgroundBlendMode: "overlay", // makes sure base color shows through
-      }}
+      className={"min-h-screen flex flex-row text-black bg-[#8df6ddff] " +
+        "font-['Lexend',sans-serif] " +
+        "bg-[radial-gradient(#fef5fe_2px,transparent_2px),radial-gradient(#fef5fe_2px,transparent_2px)] " +
+        "bg-size-[80px_80px] bg-position-[0_0,40px_40px] bg-blend-overlay"}
     >
       {/* LEFT SIDEBAR */}
       <div
-        className="w-[220px] bg-[#152f40ff] shadow-md border-r border-white flex flex-col items-center py-5 h-screen overflow-y-auto"
-        style={{ fontFamily: "'Comfortaa', sans-serif" }} // 👈 apply Comfortaa only here
+        className="w-[220px] bg-[#152f40ff] shadow-md border-r border-white flex flex-col items-center py-5 h-screen overflow-y-auto font-['Comfortaa',sans-serif]"
       >
         <h1 className="text-white text-lg font-medium text-[20px] mb-5">✨ Style Inspiration</h1>
 
@@ -122,7 +114,7 @@ export default function EditorPage() {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex flex-col items-center flex-1 pt-15">
+      <div className="flex flex-col items-center flex-1 pt-[15px]">
         <p className="text-[40px]">Experiment and Get Creative</p>
 
         {/* White Rectangle Container */}
@@ -140,7 +132,7 @@ export default function EditorPage() {
           </div>
 
          {/* Divider */}
-          <div className="mt-10 mb-10 w-[1px] bg-black"></div>
+          <div className="mt-10 mb-10 w-px bg-black"></div>
 
         {/* Right Side */}
           <div className="w-1/2 flex flex-col justify-center items-center p-6 space-y-4">
@@ -162,7 +154,7 @@ export default function EditorPage() {
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
                     placeholder="e.g. Pink"
-                    className="w-80 flex-1 px-3 py-2 text-[18px] bg-[#b7fff9ff] border-1 border-black rounded focus:outline-none"
+                    className="w-80 flex-1 px-3 py-2 text-[18px] bg-[#b7fff9ff] border border-black rounded focus:outline-none"
                   />
                 </div>
               </label>
@@ -181,7 +173,7 @@ export default function EditorPage() {
                     value={style}
                     onChange={(e) => setStyle(e.target.value)}
                     placeholder="e.g. Mohawk, No beard"
-                    className="w-80 flex-1 px-3 py-2 text-[18px] bg-[#b7fff9ff] border-1 border-black rounded focus:outline-none"
+                    className="w-80 flex-1 px-3 py-2 text-[18px] bg-[#b7fff9ff] border border-black rounded focus:outline-none"
                   />
                 </div>
               </label>
@@ -189,7 +181,7 @@ export default function EditorPage() {
               <div className="flex justify-center mt-4">
                 <button 
                  onClick={() => setIsApplied(true)}
-                 className="mt-4 px-5 py-2 bg-[#b7fff9ff] text-black border-1 border-black rounded-sm"
+                 className="mt-4 px-5 py-2 bg-[#b7fff9ff] text-black border border-black rounded-sm"
                 >
                   Apply
                 </button>
@@ -201,7 +193,7 @@ export default function EditorPage() {
         {/* Buttons BELOW the white rectangle */}
         <div className="mt-12 flex space-x-15">
           {/* Delete button */}
-          <button className="px-4 py-2 space-x-3 bg-transparent text-black rounded-full hover:bg-red-600 flex items-center space-x-2 border-1 border-black text-[18px]">
+          <button className="px-4 py-2 space-x-3 bg-transparent text-black rounded-full hover:bg-red-600 flex items-center border border-black text-[18px]">
             <img
               src="/images/trashcan.png"
               alt="Trashcan"

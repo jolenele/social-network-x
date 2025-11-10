@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Lexend } from "next/font/google";
+import { Geist, Geist_Mono, Lexend, Comfortaa } from "next/font/google";
 import "@/app/styles/globals.css";
 import Navbar from "@/app/components/Navbar";
 
@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 
 const lexend = Lexend({
   variable: "--font-lexend",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
+const comfortaa = Comfortaa({
+  variable: "--font-comfortaa",
   subsets: ["latin"],
   weight: ["400", "700"],
 });
@@ -45,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${lexend.variable} ${comfortaa.variable} antialiased`}
       >
         <Navbar />
         {children}
