@@ -16,11 +16,27 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
+    // Validate required environment variables
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      console.error('Missing required environment variables in callback:', {
+        GOOGLE_CLIENT_ID: !!clientId,
+        GOOGLE_CLIENT_SECRET: !!clientSecret,
+        GOOGLE_REDIRECT_URI: !!redirectUri,
+      });
+      return NextResponse.redirect(
+        new URL('/?error=server_config', request.url)
+      );
+    }
+
     const params = new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     });
 
@@ -31,8 +47,16 @@ export async function GET(request: Request) {
     });
 
     if (!tokenRes.ok) {
-      console.error('Failed to exchange code:', await tokenRes.text());
-      return NextResponse.redirect(new URL('/', request.url));
+      const errorText = await tokenRes.text();
+      console.error('Failed to exchange code for token:', {
+        status: tokenRes.status,
+        statusText: tokenRes.statusText,
+        error: errorText,
+      });
+      // Redirect with error parameter for debugging
+      return NextResponse.redirect(
+        new URL(`/?error=token_exchange_failed&status=${tokenRes.status}`, request.url)
+      );
     }
 
     const tokenJson = await tokenRes.json();
