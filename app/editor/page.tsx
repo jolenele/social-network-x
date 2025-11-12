@@ -11,6 +11,9 @@ export default function EditorPage() {
 
   const [isApplied, setIsApplied] = useState(false);
   
+  // Download state
+  const [isDownloading, setIsDownloading] = useState(false);
+
   // Google Photos picker state
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -70,6 +73,66 @@ export default function EditorPage() {
     console.log('🎯 [PAGE] Closing photo picker...');
     setShowPhotoPicker(false);
     console.log('✅ [PAGE] handlePhotoSelect COMPLETE');
+  }
+
+  // Download the currently selected photo (fetch -> blob -> trigger browser download)
+  async function downloadSelectedPhoto() {
+    if (!selectedPhoto) {
+      console.warn('No selected photo to download');
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+
+      const res = await fetch(selectedPhoto, { method: 'GET', credentials: 'same-origin' });
+
+      if (!res.ok) {
+        console.error('Failed to fetch image for download', res.status, res.statusText);
+        // Attempt to read error body for more detail
+        try {
+          const text = await res.text();
+          console.error('Response body:', text);
+        } catch (e) {}
+        alert('Failed to download image. Please try again or re-authenticate.');
+        return;
+      }
+
+      const blob = await res.blob();
+
+      // Determine filename from Content-Disposition if present, otherwise fallback
+      let filename = `newme-${new Date().toISOString().replace(/[:.]/g, '-')}.jpg`;
+      try {
+        const cd = res.headers.get('Content-Disposition') || res.headers.get('content-disposition');
+        if (cd) {
+          const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+          if (m && m[1]) filename = decodeURIComponent(m[1]);
+        } else {
+          const ct = res.headers.get('Content-Type') || '';
+          if (ct.includes('png')) filename = filename.replace('.jpg', '.png');
+          else if (ct.includes('gif')) filename = filename.replace('.jpg', '.gif');
+        }
+      } catch (e) {
+        // ignore and use fallback
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      // Append to DOM to make click work in some browsers
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      console.log('Image downloaded as', filename);
+    } catch (err) {
+      console.error('Error downloading image', err);
+      alert('An unexpected error occurred while downloading the image.');
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   return (
@@ -250,7 +313,10 @@ export default function EditorPage() {
         {/* Buttons BELOW the white rectangle */}
         <div className="mt-12 flex space-x-15">
           {/* Delete button */}
-          <button className="px-4 py-2 space-x-3 bg-transparent text-black rounded-full hover:bg-red-600 flex items-center border border-black text-[18px]">
+          <button 
+            className="px-4 py-2 space-x-3 bg-transparent text-black rounded-full hover:bg-red-600 flex items-center border border-black text-[18px]"
+            onClick={() => setSelectedPhoto(null)}
+          >
             <img
               src="/images/trashcan.png"
               alt="Trashcan"
@@ -261,14 +327,17 @@ export default function EditorPage() {
 
           {/* Save the NewMe button */}
           <button
-            disabled={!isApplied}
+            disabled={!isApplied || isDownloading}
+            onClick={downloadSelectedPhoto}
             className={`px-4 py-2 rounded-full border border-black text-[18px] flex items-center justify-center transition ${
               isApplied
-                ? "bg-transparent text-black"
+                ? isDownloading
+                  ? "bg-gray-200 text-gray-700 cursor-wait"
+                  : "bg-transparent text-black"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            Save the NewMe
+            {isDownloading ? 'Saving...' : 'Save the NewMe'}
           </button>
         </div>
       </div>
