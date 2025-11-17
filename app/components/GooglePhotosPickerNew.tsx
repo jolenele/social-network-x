@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface GooglePhotosPickerProps {
   isOpen: boolean;
@@ -15,6 +15,30 @@ export default function GooglePhotosPicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickerWindow, setPickerWindow] = useState<Window | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldPollRef = useRef(false);
+
+  // Reset picker window state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      // Stop polling
+      shouldPollRef.current = false;
+      if (pollIntervalRef.current) {
+        clearTimeout(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      setPickerWindow(null);
+      setLoading(false);
+      setError(null);
+    }
+  }, [isOpen]);
+
+  // Open picker when modal opens
+  useEffect(() => {
+    if (isOpen && !loading && !error && !pickerWindow) {
+      openPicker();
+    }
+  }, [isOpen]); // Only depend on isOpen to prevent double calls
 
   async function openPicker() {
     console.log('🚀 [PICKER] Starting openPicker()');
@@ -46,7 +70,7 @@ export default function GooglePhotosPicker({
       const left = (window.screen.width - width) / 2;
       const top = (window.screen.height - height) / 2;
       
-      // Don't use /autoclose - we'll close it ourselves
+      // Don't use /autoclose - we'll close it manually after getting the data
       const popup = window.open(
         pickerUri,
         'Google Photos Picker',
@@ -74,20 +98,34 @@ export default function GooglePhotosPicker({
 
   async function pollSession(sessionId: string, popup: Window) {
     console.log('🔄 [POLLING] Starting pollSession with ID:', sessionId);
+    shouldPollRef.current = true;
     const pollInterval = 2000; // 2 seconds
     const maxAttempts = 150; // 5 minutes total
     let attempts = 0;
 
     const poll = async () => {
+      // Check if polling should continue
+      if (!shouldPollRef.current) {
+        console.log('🛑 [POLLING] Stopped by cleanup');
+        return;
+      }
+
       attempts++;
       console.log(`🔄 [POLLING] Attempt ${attempts}/${maxAttempts}`);
 
       if (attempts > maxAttempts) {
         console.error('⏰ [POLLING] Timeout - max attempts reached');
+        shouldPollRef.current = false;
         setError('Selection timed out');
         if (!popup.closed) popup.close();
+        setPickerWindow(null);
         onClose();
         return;
+      }
+
+      // Check if popup was closed (note: we continue polling to get the final result)
+      if (popup.closed) {
+        console.log('🪟 [POLLING] Popup is closed, checking for final results...');
       }
 
       try {
@@ -108,6 +146,7 @@ export default function GooglePhotosPicker({
 
         if (mediaItemsSet) {
           console.log('✅ [POLLING] User finished selecting!');
+          shouldPollRef.current = false; // Stop polling
           
           if (mediaItems && mediaItems.length > 0) {
             console.log('📸 [MEDIA] Processing', mediaItems.length, 'media items');
@@ -171,20 +210,39 @@ export default function GooglePhotosPicker({
 
           console.log('🪟 [POLLING] Closing popup...');
           if (!popup.closed) popup.close();
+          setPickerWindow(null);
           onClose();
           return;
         } else {
-          // Continue polling
+          // Continue polling only if flag is still true
+          if (!shouldPollRef.current) {
+            console.log('🛑 [POLLING] Stopped before next poll');
+            return;
+          }
+
+          // If popup is closed but mediaItemsSet is false, give it a few more attempts
+          // (the API might need a moment to process the selection)
+          if (popup.closed && attempts > 5) {
+            console.log('⚠️ [POLLING] Popup closed but no items selected after multiple attempts');
+            shouldPollRef.current = false;
+            setPickerWindow(null);
+            setError('No photos were selected');
+            onClose();
+            return;
+          }
+          
           const nextPollInterval = pollingConfig?.pollInterval 
             ? parseInt(pollingConfig.pollInterval) * 1000 
             : pollInterval;
           console.log(`⏱️ [POLLING] Not ready yet, polling again in ${nextPollInterval}ms...`);
-          setTimeout(poll, nextPollInterval);
+          pollIntervalRef.current = setTimeout(poll, nextPollInterval);
         }
       } catch (err) {
         console.error('❌ [POLLING] Polling error:', err);
+        shouldPollRef.current = false;
         setError(err instanceof Error ? err.message : 'Error during photo selection');
         if (!popup.closed) popup.close();
+        setPickerWindow(null);
         onClose();
       }
     };
@@ -192,12 +250,7 @@ export default function GooglePhotosPicker({
     // Start polling
     const initialDelay = 3000; // 3 seconds initial delay
     console.log(`⏱️ [POLLING] Scheduling first poll in ${initialDelay}ms...`);
-    setTimeout(poll, initialDelay);
-  }
-
-  // Open picker when component becomes visible
-  if (isOpen && !loading && !error && !pickerWindow) {
-    openPicker();
+    pollIntervalRef.current = setTimeout(poll, initialDelay);
   }
 
   if (!isOpen) return null;
