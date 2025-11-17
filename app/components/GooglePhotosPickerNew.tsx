@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface GooglePhotosPickerProps {
   isOpen: boolean;
@@ -15,6 +15,15 @@ export default function GooglePhotosPicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickerWindow, setPickerWindow] = useState<Window | null>(null);
+
+  // Reset picker window state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setPickerWindow(null);
+      setLoading(false);
+      setError(null);
+    }
+  }, [isOpen]);
 
   async function openPicker() {
     console.log('🚀 [PICKER] Starting openPicker()');
@@ -86,6 +95,7 @@ export default function GooglePhotosPicker({
         console.error('⏰ [POLLING] Timeout - max attempts reached');
         setError('Selection timed out');
         if (!popup.closed) popup.close();
+        setPickerWindow(null); // Reset picker window state
         onClose();
         return;
       }
@@ -171,6 +181,7 @@ export default function GooglePhotosPicker({
 
           console.log('🪟 [POLLING] Closing popup...');
           if (!popup.closed) popup.close();
+          setPickerWindow(null); // Reset picker window state
           onClose();
           return;
         } else {
@@ -185,6 +196,7 @@ export default function GooglePhotosPicker({
         console.error('❌ [POLLING] Polling error:', err);
         setError(err instanceof Error ? err.message : 'Error during photo selection');
         if (!popup.closed) popup.close();
+        setPickerWindow(null); // Reset picker window state
         onClose();
       }
     };
