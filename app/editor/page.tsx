@@ -6,6 +6,7 @@ import { downloadUrlAsFile } from "../utils/download";
 import { validateVisionData, extractHairFeatures, assessImageQuality } from "../utils/visionValidation";
 import type { VisionValidationResult } from "../utils/visionValidation";
 import { buildHairModificationPrompt, validateUserInput } from "../utils/geminiPrompt";
+import { saveTransformation } from "../utils/saveTransformation";
 
 export default function EditorPage() {
   const [color, setColor] = useState("");
@@ -18,6 +19,11 @@ export default function EditorPage() {
   
   // Download state
   const [isDownloading, setIsDownloading] = useState(false);
+  
+  // Save to database state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [originalPhotoUrl, setOriginalPhotoUrl] = useState<string | null>(null);
 
   // Google Photos picker state
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
@@ -85,6 +91,8 @@ export default function EditorPage() {
     console.log('🎯 [PAGE] Current selectedPhoto state:', selectedPhoto);
     console.log('🎯 [PAGE] Setting selectedPhoto to:', photoUrl);
     setSelectedPhoto(photoUrl);
+    setOriginalPhotoUrl(photoUrl); // Store original photo URL
+    setIsApplied(false); // Reset applied state when new photo is selected
     console.log('🎯 [PAGE] Closing photo picker...');
     setShowPhotoPicker(false);
     console.log('🔍 [PAGE] Automatically triggering Vision API analysis...');
@@ -166,10 +174,71 @@ export default function EditorPage() {
     }
   }
 
+  // Save transformation to backend/database
+  async function saveToDatabase() {
+    if (!selectedPhoto || !originalPhotoUrl) {
+      alert('Please select and transform a photo first.');
+      return;
+    }
+
+    if (!isApplied) {
+      alert('Please apply a transformation before saving.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+
+      const prompt = buildHairModificationPrompt(
+        color,
+        style,
+        visionValidation
+      );
+
+      const result = await saveTransformation(
+        originalPhotoUrl,
+        selectedPhoto,
+        color || undefined,
+        style || undefined,
+        prompt || undefined
+      );
+
+      console.log('Transformation saved:', result);
+      alert('Transformation saved successfully!');
+    } catch (err) {
+      console.error('❌ [SAVE] Error saving transformation:', err);
+      console.error('❌ [SAVE] Error details:', {
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        name: err instanceof Error ? err.name : undefined,
+      });
+      
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save transformation';
+      setSaveError(errorMessage);
+      
+      // More detailed error message
+      let userMessage = errorMessage;
+      if (errorMessage.includes('fetch')) {
+        userMessage = 'Failed to connect to server. Make sure the Express server is running on port 3001.';
+      } else if (errorMessage.includes('401') || errorMessage.includes('Not authenticated')) {
+        userMessage = 'Authentication failed. Please sign in again.';
+      } else if (errorMessage.includes('403')) {
+        userMessage = 'Permission denied. Please check your authentication.';
+      } else if (errorMessage.includes('500')) {
+        userMessage = 'Server error. Check the Express server logs for details.';
+      }
+      
+      alert(`Error saving: ${userMessage}`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   // Generate new image with Gemini API
   async function generateWithGemini() {
     if (!selectedPhoto) {
-      console.error('❌ [GEMINI] No selected photo');
+      console.error('[GEMINI] No selected photo');
       return;
     }
 
@@ -441,8 +510,10 @@ export default function EditorPage() {
                 className="px-6 py-3 bg-white border border-red-300 text-red-600 rounded-lg font-semibold hover:bg-red-50 transition-colors flex items-center gap-2"
                 onClick={() => {
                   setSelectedPhoto(null);
+                  setOriginalPhotoUrl(null);
                   setGeminiError(null);
                   setIsApplied(false);
+                  setSaveError(null);
                 }}
               >
                 <img
@@ -470,14 +541,43 @@ export default function EditorPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Saving...</span>
+                    <span>Downloading...</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    <span>Save the NewMe</span>
+                    <span>Download</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                disabled={!isApplied || !originalPhotoUrl || isSaving}
+                onClick={saveToDatabase}
+                className={`px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+                  isApplied && originalPhotoUrl
+                    ? isSaving
+                      ? "bg-gray-200 text-gray-700 cursor-wait"
+                      : "bg-primary hover:bg-primary-dark text-white shadow-md hover:shadow-lg"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Save to Gallery</span>
                   </>
                 )}
               </button>

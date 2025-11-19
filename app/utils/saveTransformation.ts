@@ -43,27 +43,49 @@ export async function saveTransformation(
   hairStyle?: string,
   prompt?: string
 ): Promise<SaveTransformationResponse> {
-  const response = await fetch('/api/transformations/save', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include', // Important: include cookies for authentication
-    body: JSON.stringify({
-      originalImageUrl,
-      transformedImageUrl,
-      hairColor,
-      hairStyle,
-      prompt,
-    }),
-  });
+  console.log('[FETCH] Making request to /api/transformations/save');
+  
+  try {
+    const response = await fetch('/api/transformations/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important: include cookies for authentication
+      body: JSON.stringify({
+        originalImageUrl,
+        transformedImageUrl,
+        hairColor,
+        hairStyle,
+        prompt,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to save transformation');
+    console.log('📡 [FETCH] Response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+        console.error('📡 [FETCH] Error response:', errorData);
+      } catch (e) {
+        const text = await response.text();
+        console.error('📡 [FETCH] Error response (text):', text);
+        errorData = { error: text || `HTTP ${response.status}: ${response.statusText}` };
+      }
+      throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: Failed to save transformation`);
+    }
+
+    const data = await response.json();
+    console.log('📡 [FETCH] Success response:', data);
+    return data;
+  } catch (error) {
+    console.error('📡 [FETCH] Network or parsing error:', error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Failed to connect to server. Make sure the Express server is running on port 3001.');
+    }
+    throw error;
   }
-
-  return await response.json();
 }
 
 /**
