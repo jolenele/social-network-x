@@ -39,8 +39,8 @@ ENV EXPRESS_API_URL=http://localhost:3001
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+# Health check (increased start period to allow both services to start)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
   CMD curl -f http://localhost:${PORT:-8080}/api/config || exit 1
 
 # Start the application
