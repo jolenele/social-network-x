@@ -190,18 +190,11 @@ export default function EditorPage() {
       setIsSaving(true);
       setSaveError(null);
 
-      const prompt = buildHairModificationPrompt(
-        color,
-        style,
-        visionValidation
-      );
-
       const result = await saveTransformation(
         originalPhotoUrl,
         selectedPhoto,
         color || undefined,
-        style || undefined,
-        prompt || undefined
+        style || undefined
       );
 
       console.log('Transformation saved:', result);
