@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 echo "Starting application..."
 
@@ -17,56 +16,71 @@ echo "  NODE_ENV=$NODE_ENV"
 
 # Start Express server in background
 echo "Starting Express server on port $EXPRESS_PORT..."
-node dist/server/index.js &
+node server/dist/index.js &
 EXPRESS_PID=$!
 
 # Wait for Express to be ready
 echo "Waiting for Express server to start..."
+EXPRESS_READY=0
 for i in 1 2 3 4 5 6 7 8 9 10; do
   if curl -f http://localhost:$EXPRESS_PORT/health > /dev/null 2>&1; then
     echo "✓ Express server is ready"
+    EXPRESS_READY=1
     break
-  fi
-  if [ $i -eq 10 ]; then
-    echo "✗ Express server failed to start"
-    exit 1
   fi
   echo "  Waiting... ($i/10)"
   sleep 1
 done
 
+if [ $EXPRESS_READY -eq 0 ]; then
+  echo "✗ Express server failed to start"
+  kill $EXPRESS_PID 2>/dev/null || true
+  exit 1
+fi
+
 # Start Next.js on the port provided by App Engine
+# Next.js needs to listen on 0.0.0.0 (all interfaces) for Cloud Run/App Engine
+# The -H 0.0.0.0 flag is set in package.json start script
 echo "Starting Next.js on port $PORT..."
 PORT=$PORT npm start &
 NEXT_PID=$!
 
-# Wait for Next.js to be ready
+# Wait for Next.js to be ready (allow more time for first startup)
 echo "Waiting for Next.js to start..."
-for i in 1 2 3 4 5 6 7 8 9 10; do
+NEXT_READY=0
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   if curl -f http://localhost:$PORT/api/config > /dev/null 2>&1; then
     echo "✓ Next.js is ready"
+    NEXT_READY=1
     break
   fi
-  if [ $i -eq 10 ]; then
-    echo "✗ Next.js failed to start"
-    exit 1
-  fi
-  echo "  Waiting... ($i/10)"
+  echo "  Waiting... ($i/20)"
   sleep 2
 done
 
-echo "✓ Application is ready!"
-
-# Function to handle shutdown
-cleanup() {
-  echo "Shutting down..."
+if [ $NEXT_READY -eq 0 ]; then
+  echo "✗ Next.js failed to start"
   kill $EXPRESS_PID $NEXT_PID 2>/dev/null || true
-  wait
-  exit 0
-}
+  exit 1
+fi
 
-trap cleanup SIGTERM SIGINT
+echo "✓ Application is ready and listening on port $PORT"
 
-# Wait for both processes
-wait
+# Keep the script running and monitor both processes
+# This ensures the container stays alive
+# Use a simple loop instead of trap for better sh compatibility
+while true; do
+  # Check if processes are still running
+  if ! kill -0 $EXPRESS_PID 2>/dev/null; then
+    echo "Express server process died"
+    kill $NEXT_PID 2>/dev/null || true
+    exit 1
+  fi
+  if ! kill -0 $NEXT_PID 2>/dev/null; then
+    echo "Next.js process died"
+    kill $EXPRESS_PID 2>/dev/null || true
+    exit 1
+  fi
+  sleep 5
+done
 
