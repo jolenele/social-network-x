@@ -205,7 +205,7 @@ export default function EditorPage() {
       );
 
       console.log('Transformation saved:', result);
-      alert('Transformation saved successfully!');
+      alert('Transformation saved successfully! You can view it in the Gallery.');
     } catch (err) {
       console.error('❌ [SAVE] Error saving transformation:', err);
       console.error('❌ [SAVE] Error details:', {
