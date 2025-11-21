@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 echo "Starting application..."
 
@@ -22,51 +21,67 @@ EXPRESS_PID=$!
 
 # Wait for Express to be ready
 echo "Waiting for Express server to start..."
+EXPRESS_READY=0
 for i in 1 2 3 4 5 6 7 8 9 10; do
   if curl -f http://localhost:$EXPRESS_PORT/health > /dev/null 2>&1; then
     echo "✓ Express server is ready"
+    EXPRESS_READY=1
     break
-  fi
-  if [ $i -eq 10 ]; then
-    echo "✗ Express server failed to start"
-    exit 1
   fi
   echo "  Waiting... ($i/10)"
   sleep 1
 done
 
-# Start Next.js on the port provided by App Engine
+if [ $EXPRESS_READY -eq 0 ]; then
+  echo "✗ Express server failed to start"
+  kill $EXPRESS_PID 2>/dev/null || true
+  exit 1
+fi
+
+# Function to handle shutdown
+cleanup() {
+  echo "Shutting down..."
+  kill $EXPRESS_PID $NEXT_PID 2>/dev/null || true
+  wait $EXPRESS_PID $NEXT_PID 2>/dev/null || true
+  exit 0
+}
+
+trap cleanup SIGTERM SIGINT
+
+# Start Next.js on the port provided by App Engine (foreground process)
 echo "Starting Next.js on port $PORT..."
 PORT=$PORT npm start &
 NEXT_PID=$!
 
 # Wait for Next.js to be ready
 echo "Waiting for Next.js to start..."
-for i in 1 2 3 4 5 6 7 8 9 10; do
+NEXT_READY=0
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   if curl -f http://localhost:$PORT/api/config > /dev/null 2>&1; then
     echo "✓ Next.js is ready"
+    NEXT_READY=1
     break
   fi
-  if [ $i -eq 10 ]; then
-    echo "✗ Next.js failed to start"
-    exit 1
-  fi
-  echo "  Waiting... ($i/10)"
+  echo "  Waiting... ($i/15)"
   sleep 2
 done
 
-echo "✓ Application is ready!"
+if [ $NEXT_READY -eq 0 ]; then
+  echo "✗ Next.js failed to start"
+  cleanup
+  exit 1
+fi
 
-# Function to handle shutdown
-cleanup() {
-  echo "Shutting down..."
-  kill $EXPRESS_PID $NEXT_PID 2>/dev/null || true
-  wait
-  exit 0
-}
+echo "✓ Application is ready and listening on port $PORT"
 
-trap cleanup SIGTERM SIGINT
+# Keep the script running and wait for both processes
+# This ensures the container stays alive
+while kill -0 $EXPRESS_PID 2>/dev/null && kill -0 $NEXT_PID 2>/dev/null; do
+  sleep 1
+done
 
-# Wait for both processes
-wait
+# If we get here, one of the processes died
+echo "One of the processes exited unexpectedly"
+cleanup
+exit 1
 
