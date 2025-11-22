@@ -1,4 +1,5 @@
 import { getStorage } from 'firebase-admin/storage';
+import { getApp } from 'firebase-admin/app';
 
 /**
  * Upload a base64 image data URL to Firebase Storage
@@ -24,13 +25,47 @@ export async function uploadBase64ImageToStorage(
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
     // Get storage bucket - try to get it explicitly if bucket name is available
-    const storageBucketName = process.env.FIREBASE_STORAGE_BUCKET;
-    const bucket = storageBucketName 
-      ? getStorage().bucket(storageBucketName)
-      : getStorage().bucket();
+    let storageBucketName = process.env.FIREBASE_STORAGE_BUCKET;
+    
+    // If not set in env, try to get from Firebase app options
+    if (!storageBucketName) {
+      try {
+        const app = getApp();
+        const options = app.options;
+        storageBucketName = options.storageBucket;
+      } catch (e) {
+        // App might not be initialized or bucket not in options
+      }
+    }
+    
+    // If still not set, try to construct from project ID
+    if (!storageBucketName) {
+      try {
+        const app = getApp();
+        const projectId = app.options.projectId;
+        if (projectId) {
+          storageBucketName = `${projectId}.appspot.com`;
+        }
+      } catch (e) {
+        // App might not be initialized
+      }
+    }
+    
+    if (!storageBucketName) {
+      throw new Error(
+        'FIREBASE_STORAGE_BUCKET environment variable is not set and could not be determined from Firebase app configuration. ' +
+        'Please set FIREBASE_STORAGE_BUCKET in your environment variables (e.g., "your-project-id.appspot.com").'
+      );
+    }
+    
+    const bucket = getStorage().bucket(storageBucketName);
     
     if (!bucket) {
-      throw new Error('Firebase Storage bucket not configured. Please set FIREBASE_STORAGE_BUCKET environment variable or configure storageBucket in Firebase initialization.');
+      throw new Error(
+        `Failed to get storage bucket "${storageBucketName}". ` +
+        `Please verify the bucket name is correct and Firebase Admin is properly initialized. ` +
+        `Check that Firebase Storage is enabled in your Firebase project.`
+      );
     }
 
     // Generate unique filename using timestamp and random number
@@ -109,13 +144,47 @@ export async function uploadImageFromUrlToStorage(
     }
 
     // Get storage bucket
-    const storageBucketName = process.env.FIREBASE_STORAGE_BUCKET;
-    const bucket = storageBucketName 
-      ? getStorage().bucket(storageBucketName)
-      : getStorage().bucket();
+    let storageBucketName = process.env.FIREBASE_STORAGE_BUCKET;
+    
+    // If not set in env, try to get from Firebase app options
+    if (!storageBucketName) {
+      try {
+        const app = getApp();
+        const options = app.options;
+        storageBucketName = options.storageBucket;
+      } catch (e) {
+        // App might not be initialized or bucket not in options
+      }
+    }
+    
+    // If still not set, try to construct from project ID
+    if (!storageBucketName) {
+      try {
+        const app = getApp();
+        const projectId = app.options.projectId;
+        if (projectId) {
+          storageBucketName = `${projectId}.appspot.com`;
+        }
+      } catch (e) {
+        // App might not be initialized
+      }
+    }
+    
+    if (!storageBucketName) {
+      throw new Error(
+        'FIREBASE_STORAGE_BUCKET environment variable is not set and could not be determined from Firebase app configuration. ' +
+        'Please set FIREBASE_STORAGE_BUCKET in your environment variables (e.g., "your-project-id.appspot.com").'
+      );
+    }
+    
+    const bucket = getStorage().bucket(storageBucketName);
     
     if (!bucket) {
-      throw new Error('Firebase Storage bucket not configured. Please set FIREBASE_STORAGE_BUCKET environment variable or configure storageBucket in Firebase initialization.');
+      throw new Error(
+        `Failed to get storage bucket "${storageBucketName}". ` +
+        `Please verify the bucket name is correct and Firebase Admin is properly initialized. ` +
+        `Check that Firebase Storage is enabled in your Firebase project.`
+      );
     }
 
     // Determine the fetch URL
