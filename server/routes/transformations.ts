@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { uploadBase64ImageToStorage, isDataUrl } from '../utils/storage';
+import { uploadBase64ImageToStorage, isDataUrl, uploadImageFromUrlToStorage, isGcsUrl, isProxyUrl } from '../utils/storage';
 
 const router = express.Router();
 
@@ -37,16 +37,53 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // Extract access token from cookies for fetching Google Photos images
+    const cookies = req.headers.cookie || '';
+    const cookieMap: Record<string, string> = {};
+    cookies.split(';').forEach(cookie => {
+      const [key, value] = cookie.trim().split('=');
+      if (key && value) {
+        cookieMap[key] = decodeURIComponent(value);
+      }
+    });
+    const accessToken = cookieMap['access_token'];
+
+    // Get base URL for constructing full proxy URLs
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Upload original image to Firebase Storage if it's not already a GCS URL
+    let finalOriginalImageUrl = originalImageUrl;
+    if (!isGcsUrl(originalImageUrl)) {
+      console.log('📤 Uploading original image to Firebase Storage...');
+      try {
+        finalOriginalImageUrl = await uploadImageFromUrlToStorage(
+          originalImageUrl,
+          user.userId,
+          baseUrl,
+          accessToken
+        );
+        console.log('✅ Original image uploaded successfully:', finalOriginalImageUrl);
+      } catch (uploadError: any) {
+        console.error('❌ Failed to upload original image to Storage:', uploadError);
+        return res.status(500).json({
+          error: 'Failed to upload original image',
+          message: uploadError.message,
+        });
+      }
+    } else {
+      console.log('✅ Original image URL is already a GCS URL, skipping upload');
+    }
+
     // If transformedImageUrl is a base64 data URL, upload it to Firebase Storage
     // Firestore has a 1MB limit per field, and base64 data URLs can exceed this
     let finalTransformedImageUrl = transformedImageUrl;
     if (isDataUrl(transformedImageUrl)) {
-      console.log('📤 Uploading base64 image to Firebase Storage...');
+      console.log('📤 Uploading base64 transformed image to Firebase Storage...');
       try {
         finalTransformedImageUrl = await uploadBase64ImageToStorage(transformedImageUrl, user.userId);
-        console.log('✅ Image uploaded successfully');
+        console.log('✅ Transformed image uploaded successfully');
       } catch (uploadError: any) {
-        console.error('❌ Failed to upload image to Storage:', uploadError);
+        console.error('❌ Failed to upload transformed image to Storage:', uploadError);
         return res.status(500).json({
           error: 'Failed to upload transformed image',
           message: uploadError.message,
@@ -56,7 +93,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     const transformation: Omit<Transformation, 'createdAt' | 'updatedAt'> = {
       userId: user.userId,
-      originalImageUrl,
+      originalImageUrl: finalOriginalImageUrl, // Use the GCS URL instead of proxy URL
       transformedImageUrl: finalTransformedImageUrl, // Use the Storage URL instead of data URL
       hairColor: hairColor || null,
       hairStyle: hairStyle || null,
