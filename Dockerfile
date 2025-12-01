@@ -1,48 +1,27 @@
-# Use Node.js LTS version
-FROM node:20-slim
-
-# Set working directory
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Install dependencies needed for building and health checks
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy package files
 COPY package*.json ./
+RUN npm install
 
-# Install dependencies
-RUN npm ci --only=production=false
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-# Copy all source files
-COPY . .
+COPY --from=deps /app/node_modules ./node_modules
 
-# Build Next.js application
+# CRITICAL FIX:
+COPY ./ ./
+
 RUN npm run build
 
-# Build Express server
-RUN npm run build:server
+FROM node:20-alpine AS runner
+WORKDIR /app
 
-# Expose port (App Engine will set PORT env var)
+ENV NODE_ENV=production
+ENV PORT=8080
+
+COPY --from=builder /app ./
+
 EXPOSE 8080
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV EXPRESS_PORT=3001
-ENV EXPRESS_API_URL=http://localhost:3001
-
-# Copy start script
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
-# Health check (increased start period to allow both services to start)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-8080}/api/config || exit 1
-
-# Start the application
-CMD ["/app/start.sh"]
-
+CMD ["npm", "run", "start"]

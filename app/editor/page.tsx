@@ -7,6 +7,14 @@ import { validateVisionData } from "../utils/visionValidation";
 import type { VisionValidationResult } from "../utils/visionValidation";
 import { buildHairModificationPrompt, validateUserInput } from "../utils/geminiPrompt";
 import { saveTransformation } from "../utils/saveTransformation";
+import {
+  initGA,
+  sendPageView,
+  trackGeminiRequest,
+  trackFavoriteSaved,
+} from "@/analytics";
+
+let gaInitialized = false;
 
 export default function EditorPage() {
   const [color, setColor] = useState("");
@@ -38,6 +46,15 @@ export default function EditorPage() {
   // Gemini state
   const [isGenerating, setIsGenerating] = useState(false);
   const [geminiError, setGeminiError] = useState<string | null>(null);
+
+  // ✅ GA init + pageview for /editor
+  useEffect(() => {
+    if (!gaInitialized && typeof window !== "undefined") {
+      initGA();
+      gaInitialized = true;
+    }
+    sendPageView("/editor");
+  }, []);
 
   // Monitor selectedPhoto state changes
   useEffect(() => {
@@ -198,6 +215,9 @@ export default function EditorPage() {
 
       console.log('Transformation saved:', result);
       alert('Transformation saved successfully! You can view it in the Gallery.');
+
+      // 🔴 Metric 3 – Favorite look saved
+      trackFavoriteSaved();
     } catch (err) {
       console.error('❌ [SAVE] Error saving transformation:', err);
       console.error('❌ [SAVE] Error details:', {
@@ -289,6 +309,9 @@ export default function EditorPage() {
       } else {
         setGeminiError(data.message || 'No image was generated');
       }
+
+      // 🔴 Metric 2 – Gemini API usage
+      trackGeminiRequest("Hair style preview");
     } catch (err) {
       console.error('❌ [GEMINI] Error:', err);
       if (err instanceof Error && err.name === 'AbortError') {
@@ -326,7 +349,7 @@ export default function EditorPage() {
   }, [selectedPhoto, isVisionLoading]);
 
   return (
-    <div className="min-h-screen flex flex-row bg-gradient-to-br from-gray-50 via-white to-primary/5">
+    <div className="min-h-screen flex flex-row bg-linear-to-br from-gray-50 via-white to-primary/5">
       <div className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col h-screen overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900 mb-1">✨ Style Inspiration</h2>

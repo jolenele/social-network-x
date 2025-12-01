@@ -3,9 +3,20 @@
 import React, { useEffect, useState } from "react";
 import ImageComp from "@/app/components/ImageComp";
 import Link from "next/link";
+import { initGA, sendPageView, trackTryItNowClick } from "@/analytics";
+
+let gaInitialized = false;
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!gaInitialized && typeof window !== "undefined") {
+      initGA();
+      gaInitialized = true;
+    }
+    sendPageView("/");
+  }, [])
 
   useEffect(() => {
     let mounted = true;
@@ -28,17 +39,23 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-primary/5">
+      <section className="relative overflow-hidden bg-linear-to-br from-gray-50 via-white to-primary/5">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8 sm:pt-12 sm:pb-16">
           <div className="text-center animate-fade-in">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-8">
               Discover the{" "}
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">
                 New You
               </span>
             </h1>
             <Link href={href}>
-              <button className="inline-flex items-center px-8 py-4 text-base font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+              <button
+                className="inline-flex items-center px-8 py-4 text-base font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                onClick={() => {
+                  // 🔴 Metric 1: Try It Now click
+                  trackTryItNowClick();
+                }}
+              >
                 Try it Now
                 <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -56,7 +73,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Before</h2>
               <p className="text-gray-600">Your original look</p>
             </div>
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <ImageComp
                 firstSrc="/images/before-homepage.png"
                 secondSrc="/images/after-homepage.png"
@@ -126,7 +143,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 sm:py-20 bg-gradient-to-r from-primary to-secondary">
+      <section className="py-16 sm:py-20 bg-linear-to-r from-primary to-secondary">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Ready to Transform Your Look?
@@ -135,7 +152,12 @@ export default function Home() {
             Join thousands of users discovering their new style with AI
           </p>
           <Link href={href}>
-            <button className="inline-flex items-center px-8 py-4 text-base font-semibold text-primary bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+            <button
+              className="inline-flex items-center px-8 py-4 text-base font-semibold text-primary bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              onClick={() => {
+                trackTryItNowClick();
+              }}
+            >
               Get Started Free
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />

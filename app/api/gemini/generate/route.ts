@@ -3,6 +3,15 @@ import { NextResponse } from 'next/server';
 // Increase timeout to 5 minutes (300 seconds) for Gemini API calls
 // Gemini image generation can take a long time
 export const maxDuration = 300; // 5 minutes
+export const runtime = "nodejs";
+
+console.log(
+  '🔑 [GEMINI] GOOGLE_API_KEY present:',
+  !!process.env.GOOGLE_API_KEY,
+  'length:',
+  process.env.GOOGLE_API_KEY?.length ?? 0
+);
+
 
 function parseCookies(cookieHeader: string | null) {
   const map: Record<string, string> = {};
@@ -56,8 +65,31 @@ export async function POST(request: Request) {
     console.log('🎨 [GEMINI] Prompt length:', prompt.length);
 
     // Fetch the image to send to Gemini
-    const origin = new URL(request.url).origin;
-    const absoluteUrl = imageUrl.startsWith('http') ? imageUrl : `${origin}${imageUrl}`;
+    // Use localhost for internal routes to avoid calling the public run.app URL from inside Cloud Run
+    const port = process.env.PORT || '8080';
+
+    let absoluteUrl: string;
+
+    if (imageUrl.startsWith('/')) {
+      // e.g. /api/photos/proxy-image?...
+      absoluteUrl = `http://127.0.0.1:${port}${imageUrl}`;
+    } else if (imageUrl.startsWith('http')) {
+      const urlObj = new URL(imageUrl);
+
+      // If the URL points back to this Cloud Run service, rewrite to localhost
+      if (urlObj.hostname.endsWith('.run.app')) {
+        absoluteUrl = `http://127.0.0.1:${port}${urlObj.pathname}${urlObj.search}`;
+      } else {
+        // External URL (e.g. Google Photos baseUrl) – use as-is
+        absoluteUrl = imageUrl;
+      }
+    } else {
+      // Fallback for weird relative values
+      absoluteUrl = `http://127.0.0.1:${port}/${imageUrl.replace(/^\/+/, '')}`;
+    }
+
+    console.log('[GEMINI] Fetching image from:', absoluteUrl);
+
 
     // Create AbortController with 30 second timeout for image fetch
     const imageController = new AbortController();
