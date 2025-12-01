@@ -7,6 +7,14 @@ import { validateVisionData } from "../utils/visionValidation";
 import type { VisionValidationResult } from "../utils/visionValidation";
 import { buildHairModificationPrompt, validateUserInput } from "../utils/geminiPrompt";
 import { saveTransformation } from "../utils/saveTransformation";
+import {
+  initGA,
+  sendPageView,
+  trackGeminiRequest,
+  trackFavoriteSaved,
+} from "@/analytics";
+
+let gaInitialized = false;
 
 export default function EditorPage() {
   const [color, setColor] = useState("");
@@ -38,6 +46,15 @@ export default function EditorPage() {
   // Gemini state
   const [isGenerating, setIsGenerating] = useState(false);
   const [geminiError, setGeminiError] = useState<string | null>(null);
+
+  // ✅ GA init + pageview for /editor
+  useEffect(() => {
+    if (!gaInitialized && typeof window !== "undefined") {
+      initGA();
+      gaInitialized = true;
+    }
+    sendPageView("/editor");
+  }, []);
 
   // Monitor selectedPhoto state changes
   useEffect(() => {
@@ -198,6 +215,9 @@ export default function EditorPage() {
 
       console.log('Transformation saved:', result);
       alert('Transformation saved successfully! You can view it in the Gallery.');
+
+      // 🔴 Metric 3 – Favorite look saved
+      trackFavoriteSaved();
     } catch (err) {
       console.error('❌ [SAVE] Error saving transformation:', err);
       console.error('❌ [SAVE] Error details:', {
@@ -289,6 +309,9 @@ export default function EditorPage() {
       } else {
         setGeminiError(data.message || 'No image was generated');
       }
+
+      // 🔴 Metric 2 – Gemini API usage
+      trackGeminiRequest("Hair style preview");
     } catch (err) {
       console.error('❌ [GEMINI] Error:', err);
       if (err instanceof Error && err.name === 'AbortError') {
