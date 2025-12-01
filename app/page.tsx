@@ -3,9 +3,21 @@
 import React, { useEffect, useState } from "react";
 import ImageComp from "@/app/components/ImageComp";
 import Link from "next/link";
+import { initGA, sendPageView, trackTryItNowClick } from "../analytics";
+
+let gaInitialized = false;
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  // ✅ Initialize GA + send homepage pageview
+  useEffect(() => {
+    if (!gaInitialized && typeof window !== "undefined") {
+      initGA();
+      gaInitialized = true;
+    }
+    sendPageView("/");
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -38,10 +50,26 @@ export default function Home() {
               </span>
             </h1>
             <Link href={href}>
-              <button className="inline-flex items-center px-8 py-4 text-base font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+              <button
+                className="inline-flex items-center px-8 py-4 text-base font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                onClick={() => {
+                  // 🔴 Metric 1: Try It Now click
+                  trackTryItNowClick();
+                }}
+              >
                 Try it Now
-                <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                <svg
+                  className="ml-2 w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
                 </svg>
               </button>
             </Link>
@@ -84,41 +112,80 @@ export default function Home() {
               Why Choose NewMe?
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Experience the future of style experimentation with AI-powered technology
+              Experience the future of style experimentation with AI-powered
+              technology
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                <svg
+                  className="w-6 h-6 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">AI-Powered</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                AI-Powered
+              </h3>
               <p className="text-gray-600">
-                Advanced AI technology transforms your photos with realistic style changes
+                Advanced AI technology transforms your photos with realistic
+                style changes
               </p>
             </div>
             <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200">
               <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <svg
+                  className="w-6 h-6 text-secondary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Secure & Private</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Secure & Private
+              </h3>
               <p className="text-gray-600">
                 Your photos are processed securely with Google authentication
               </p>
             </div>
             <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200">
               <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-6 h-6 text-accent"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Easy to Use</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Easy to Use
+              </h3>
               <p className="text-gray-600">
-                Simple, intuitive interface that makes style experimentation effortless
+                Simple, intuitive interface that makes style experimentation
+                effortless
               </p>
             </div>
           </div>
@@ -135,10 +202,25 @@ export default function Home() {
             Join thousands of users discovering their new style with AI
           </p>
           <Link href={href}>
-            <button className="inline-flex items-center px-8 py-4 text-base font-semibold text-primary bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+            <button
+              className="inline-flex items-center px-8 py-4 text-base font-semibold text-primary bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              onClick={() => {
+                trackTryItNowClick();
+              }}
+            >
               Get Started Free
-              <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              <svg
+                className="ml-2 w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
               </svg>
             </button>
           </Link>
