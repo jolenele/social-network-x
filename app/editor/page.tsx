@@ -1,12 +1,30 @@
 "use client";
+
+// Importing React hooks for state management and lifecycle control
 import { useState, useEffect, useMemo } from "react";
+
+// Importing Google Photos picker component
 import GooglePhotosPicker from "../components/GooglePhotosPickerNew";
+
+// Component for displaying Google Vision API results
 import VisionResults from "../components/VisionResults";
+
+// Utility function to download an image URL as a file
 import { downloadUrlAsFile } from "../utils/download";
+
+// Validation for Google Vision API analysis results
 import { validateVisionData } from "../utils/visionValidation";
+
+// Type definition for Vision validation results
 import type { VisionValidationResult } from "../utils/visionValidation";
+
+// Prompt builders + input validation for Gemini AI hair modification requests
 import { buildHairModificationPrompt, validateUserInput } from "../utils/geminiPrompt";
+
+// Saves transformation data to DB/backend
 import { saveTransformation } from "../utils/saveTransformation";
+
+// Analytics imports for initializing GA and tracking events
 import {
   initGA,
   sendPageView,
@@ -14,16 +32,26 @@ import {
   trackFavoriteSaved,
 } from "@/analytics";
 
+// Tracks whether Google Analytics has been initialized already
 let gaInitialized = false;
 
+// Main React component for the hair transformation editor page
 export default function EditorPage() {
+  // State for hair color selection
   const [color, setColor] = useState("");
+
+  // State for hairstyle selection
   const [style, setStyle] = useState("");
 
+  // State controlling visibility of hair color selection list
   const [showColors, setShowColors] = useState(false); // 👈 controls list visibility
+
+  // State controlling visibility of hairstyle selection list
   const [showHairstyles, setShowHairstyles] = useState(false);
 
+  // Tracks whether a transformation has been applied to the current image
   const [isApplied, setIsApplied] = useState(false);
+
   
   // Download state
   const [isDownloading, setIsDownloading] = useState(false);
