@@ -1,22 +1,46 @@
-"use client";
+"use client"; 
+// Marks this file as a Client Component in Next.js, allowing use of hooks like useState, useEffect, etc.
+
 import { useState, useEffect, useRef } from "react";
+// Imports React hooks for state management, side effects, and mutable refs.
 
 interface GooglePhotosPickerProps {
-  isOpen: boolean;
-  onClose: () => void;
+  // Defines the expected props for the GooglePhotosPicker component.
+  isOpen: boolean; 
+  // Indicates whether the picker modal/component should be visible.
+  onClose: () => void; 
+  // Callback function triggered when the picker is closed.
   onSelectPhoto: (photoUrl: string, photoData: any) => void;
+  // Callback function triggered when the user selects a photo.
+  // Returns the photo URL and additional photo data.
 }
 
 export default function GooglePhotosPicker({
-  isOpen,
-  onClose,
+  // Defines and exports the GooglePhotosPicker functional component.
+  isOpen, 
+  // Destructures `isOpen` prop to determine visibility state.
+  onClose, 
+  // Destructures `onClose` callback for closing the picker.
   onSelectPhoto,
+  // Destructures `onSelectPhoto` callback for handling photo selection.
 }: GooglePhotosPickerProps) {
   const [loading, setLoading] = useState(false);
+  // Manages loading state while interacting with Google Photos API or popup.
+
   const [error, setError] = useState<string | null>(null);
+  // Stores an error message if something goes wrong; null means no error.
+
   const [pickerWindow, setPickerWindow] = useState<Window | null>(null);
+  // Holds a reference to the popup window used for selecting Google Photos.
+  // Null means no popup currently exists.
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Stores a reference to the polling interval so it can be cleared later.
+  // `useRef` keeps the value persistent across renders without triggering rerenders.
+
   const shouldPollRef = useRef(false);
+  // Boolean ref used to determine whether the component should continue polling the popup window.
+  // Stored in a ref so it persists without causing rerenders.
 
   // Reset picker window state when modal is closed
   useEffect(() => {

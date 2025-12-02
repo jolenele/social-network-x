@@ -1,61 +1,117 @@
-"use client";
+"use client"; 
+// Enables React client-side rendering for this component
 
 import { useState, useEffect, useRef } from "react";
+// Importing React hooks: useState for state, useEffect for lifecycle events, useRef for DOM references
+
 import { getTransformations, deleteTransformation, type Transformation } from "../utils/saveTransformation";
+// Importing helper functions to fetch/delete transformations from the backend
+// Also importing the Transformation type for TypeScript support
 
 export default function GalleryPage() {
+  // Main functional component for displaying the gallery page
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // Tracks whether the sorting/filter dropdown menu is open
+
   const [activeTab, setActiveTab] = useState<'original' | 'styled' | 'comparison'>('comparison');
+  // Tracks which tab is currently selected: original images, styled images, or comparison mode
+
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  // Stores the selected sorting order for photos (newest first or oldest first)
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // Creates a reference to the dropdown container so we can detect clicks outside of it
 
   // Transformations data
   const [transformations, setTransformations] = useState<Transformation[]>([]);
+  // Holds the list of transformations fetched from the backend
+
   const [loading, setLoading] = useState(true);
+  // Indicates whether data is still loading
+
   const [error, setError] = useState<string | null>(null);
+  // Stores any error messages that may occur when loading data
+
   const [lastDocId, setLastDocId] = useState<string | null>(null);
+  // Used for pagination: stores the last document ID returned by Firestore/API
+
   const [hasMore, setHasMore] = useState(false);
+  // Indicates whether more transformations exist beyond the ones already loaded
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+  // Tracks the current gallery page for manual pagination
+
   const photosPerPage = 24;
+  // Determines how many photos to display per page
 
   useEffect(() => {
+    // This effect handles closing the dropdown when clicking outside of it
+
     function handleClickOutside(event: MouseEvent) {
+      // Function triggered when the user clicks anywhere on the page
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        // If the dropdown is open and the click is outside the dropdown, close it
         setDropdownOpen(false);
       }
     }
 
     if (dropdownOpen) {
+      // Only attach the listener if the dropdown is currently open
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
+      // Cleanup function removes the event listener when component unmounts or dropdown closes
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [dropdownOpen]);
+  // Effect depends on dropdownOpen; runs whenever dropdownOpen changes
 
   // Fetch transformations from database
   const fetchTransformations = async () => {
+    // Async function that retrieves transformation data from backend storage
+
     try {
       setLoading(true);
+      // Set the loading state so UI can show a spinner or loading message
+
       setError(null);
+      // Reset any previous error messages
+
       console.log('🔄 [GALLERY] Fetching transformations...');
-      
+      // Debug log indicating data fetch has started
+
       const response = await getTransformations(100); // Fetch up to 100 items
+      // Calls the backend helper function and waits for results
+
       console.log('✅ [GALLERY] Fetched transformations:', response);
-      
+      // Debug log showing the successful response from backend
+
       setTransformations(response.transformations);
+      // Save the fetched transformation list into state so UI can render it
+
       setHasMore(response.hasMore);
+      // Store whether there are more results beyond what was fetched
+
       setLastDocId(response.lastDocId);
+      // Save the last document ID for pagination purposes
     } catch (err) {
+      // Catch any errors that occur during the fetch
+
       console.error('❌ [GALLERY] Error fetching transformations:', err);
+      // Log the error for debugging in console
+
       setError(err instanceof Error ? err.message : 'Failed to load photos');
+      // Store a readable error message in state for display in UI
     } finally {
       setLoading(false);
+      // Always turn off loading state when request is done (success or fail)
     }
   };
+  // End of fetchTransformations function
+
 
   // Fetch on mount and when tab changes
   useEffect(() => {

@@ -1,30 +1,33 @@
-"use client";
-import { useState } from "react";
-import type { VisionValidationResult } from "../utils/visionValidation";
+"use client"; // This marks the file as a client component in Next.js
 
+import { useState } from "react"; // Import React useState hook for component state
+import type { VisionValidationResult } from "../utils/visionValidation"; // Import type for vision validation results
+
+// Define the props interface for VisionResults component
 interface VisionResultsProps {
-  isOpen: boolean;
-  onClose: () => void;
-  isLoading: boolean;
-  error: string | null;
-  labels: Array<{ description: string; score: number }> | null;
-  raw: any | null;
-  validation?: VisionValidationResult | null;
+  isOpen: boolean; // Determines if the modal/component should be visible
+  onClose: () => void; // Function to close the modal/component
+  isLoading: boolean; // Flag indicating if the vision analysis is in progress
+  error: string | null; // Any error message returned from the analysis
+  labels: Array<{ description: string; score: number }> | null; // Array of labels detected by the vision API
+  raw: any | null; // Raw response from the vision API
+  validation?: VisionValidationResult | null; // Optional validation object
 }
 
+// Main component function definition
 export default function VisionResults({ isOpen, onClose, isLoading, error, labels, raw, validation }: VisionResultsProps) {
-  const [showRaw, setShowRaw] = useState(false);
+  const [showRaw, setShowRaw] = useState(false); // Local state to toggle raw JSON display
 
-  if (!isOpen) return null;
+  if (!isOpen) return null; // If the component is not open, render nothing
 
   return (
-    <div className=" bg-white rounded-md shadow-md p-4 mr-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Vision Results</h3>
-        <div className="flex items-center space-x-2">
+    <div className=" bg-white rounded-md shadow-md p-4 mr-6"> {/* Main container with styling */}
+      <div className="flex justify-between items-center"> {/* Header container with flex layout */}
+        <h3 className="text-lg font-medium">Vision Results</h3> {/* Title of the modal/component */}
+        <div className="flex items-center space-x-2"> {/* Container for buttons */}
           <button
-            onClick={() => setShowRaw((s) => !s)}
-            className="px-2 py-1 text-sm border rounded bg-gray-100"
+            onClick={() => setShowRaw((s) => !s)} // Toggle showRaw state when clicked
+            className="px-2 py-1 text-sm border rounded bg-gray-100" // Styling for toggle button
           >
             {showRaw ? "Hide Raw" : "Show Raw"}
           </button>
